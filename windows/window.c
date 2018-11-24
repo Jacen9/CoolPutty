@@ -2605,14 +2605,14 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 	    flip_full_screen();
 	    break;
 	  case IDM_EXECUTEQCMD:
-		  execute_quick_cmd(hwnd, lParam - IDM_QCMD_MIN);
+		  execute_quick_cmd(hwnd, lParam);
 		break;
 	  default:
 	    if (wParam >= IDM_SAVED_MIN && wParam < IDM_SAVED_MAX) {
 		SendMessage(hwnd, WM_SYSCOMMAND, IDM_SAVEDSESS, wParam);
 	    }
 		if (wParam >= IDM_QCMD_MIN && wParam < IDM_QCMD_MAX) {
-		SendMessage(hwnd, WM_SYSCOMMAND, IDM_EXECUTEQCMD, wParam);
+			SendMessage(hwnd, WM_SYSCOMMAND, IDM_EXECUTEQCMD, wParam - IDM_QCMD_MIN);
 		}
 	    if (wParam >= IDM_SPECIAL_MIN && wParam <= IDM_SPECIAL_MAX) {
 		int i = (wParam - IDM_SPECIAL_MIN) / 0x10;
@@ -4255,6 +4255,14 @@ static int TranslateKey(UINT message, WPARAM wParam, LPARAM lParam,
     scan = (HIWORD(lParam) & (KF_UP | KF_EXTENDED | 0xFF));
     shift_state = ((keystate[VK_SHIFT] & 0x80) != 0)
 	+ ((keystate[VK_CONTROL] & 0x80) != 0) * 2;
+
+	//Ctrl + F?(1 - 10)
+	if ((shift_state == 2 && wParam >= VK_F1 && wParam <= VK_F10)
+		 && (message == WM_KEYDOWN)) 
+	{
+		SendMessage(hwnd, WM_SYSCOMMAND, IDM_EXECUTEQCMD, wParam - VK_F1);
+		return 0;
+	}
 
     /* Note if AltGr was pressed and if it was used as a compose key */
     if (!compose_state) {
