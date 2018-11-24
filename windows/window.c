@@ -251,6 +251,14 @@ QCMD quick_cmd[QCMD_MAX];
 static UINT quick_cmd_count = 0;
 static UINT current_qcmd_index = 0;
 
+///
+/// I know this function is not safe.
+/// But I think if someone who want to use this QuickCommand feature
+/// He/She must follow my FORMAT kindly.
+/// Becasue I dont want to guess WHO will use WHAT kind of illegal FORMAT to make CoolPuTTY crash.
+/// It's so BORING! ^-^
+///                                                                 -- Suiyek
+///
 void read_quick_cmd_from_config(void)
 {
 	static unsigned char read_flag = 0;
