@@ -228,6 +228,75 @@ static UINT wm_mousewheel = WM_MOUSEWHEEL;
 const int share_can_be_downstream = TRUE;
 const int share_can_be_upstream = TRUE;
 
+#define QCMD_MAX 10
+#define QCMD_CONFIG_PATH "C://QCMD.CoolPuTTY.cfg"
+#define QCMD_NAME "[NAME]:"
+#define QCMD_CMD "[CMD]:"
+#define QCMD_ENTER "[ENTER]:"
+#define CLEAR_STRING(_s_) memset(_s_, 0, sizeof(_s_))
+#define IS_EOF_BREAK(_f_) if(feof(_f_))break
+typedef struct
+{
+	char *name;
+	char *cmd;
+	unsigned char enter;
+}QCMD;
+
+QCMD quick_cmd[QCMD_MAX];
+static quick_cmd_count = 0;
+void read_quick_cmd_from_config(void)
+{
+	static unsigned char read_flag = 0;
+
+	if (read_flag == 0)
+	{
+		read_flag = 1;
+
+		FILE *fp = fopen(QCMD_CONFIG_PATH, "r");
+		if (fp)
+		{
+			int cmd_index = 0;
+			char readline[512];
+			while (cmd_index < QCMD_MAX)
+			{
+				CLEAR_STRING(readline);
+				fgets(readline, sizeof(readline), fp);
+				IS_EOF_BREAK(fp);
+				if (strncmp(readline, QCMD_NAME, strlen(QCMD_NAME)) == 0) // read QCMD name.
+				{
+					quick_cmd[cmd_index].name = (char *)calloc(strlen(readline) - strlen(QCMD_NAME) + 1, sizeof(char));
+					memcpy(quick_cmd[cmd_index].name, readline + strlen(QCMD_NAME), strlen(readline) - strlen(QCMD_NAME) - 1);
+
+					CLEAR_STRING(readline);
+					fgets(readline, sizeof(readline), fp);
+					IS_EOF_BREAK(fp);
+					if (strncmp(readline, QCMD_CMD, strlen(QCMD_CMD)) == 0) // read QCMD command.
+					{
+						quick_cmd[cmd_index].cmd = (char *)calloc(strlen(readline) - strlen(QCMD_CMD) + 1, sizeof(char));
+						memcpy(quick_cmd[cmd_index].cmd, readline + strlen(QCMD_CMD), strlen(readline) - strlen(QCMD_CMD) - 1);
+
+						CLEAR_STRING(readline);
+						fgets(readline, sizeof(readline), fp);
+						IS_EOF_BREAK(fp);
+						if (strncmp(readline, QCMD_ENTER, strlen(QCMD_ENTER)) == 0) // read QCMD if press [ENTER]
+						{
+							memcpy(&(quick_cmd[cmd_index].enter), readline + strlen(QCMD_ENTER), sizeof(unsigned char));
+						}
+						else{break;}
+					}
+					else{break;}
+				}
+				else{break;}
+
+				cmd_index++;
+			}
+
+			quick_cmd_count = cmd_index + 1;
+			fclose(fp);
+		}
+	}
+}
+
 /* Dummy routine, only required in plink. */
 void frontend_echoedit_update(void *frontend, int echo, int edit)
 {
