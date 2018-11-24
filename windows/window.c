@@ -57,6 +57,8 @@
 #define IDM_SPECIAL_MIN 0x0400
 #define IDM_SPECIAL_MAX 0x0800
 
+#define IDM_QCMD_MIN 0x900
+
 #define IDM_SAVED_MIN 0x1000
 #define IDM_SAVED_MAX 0x5000
 #define MENU_SAVED_STEP 16
@@ -145,6 +147,7 @@ static struct {
 } popup_menus[2];
 enum { SYSMENU, CTXMENU };
 static HMENU savedsess_menu;
+static HMENU qcmd_menu;
 
 struct wm_netevent_params {
     /* Used to pass data to wm_netevent_callback */
@@ -291,9 +294,31 @@ void read_quick_cmd_from_config(void)
 				cmd_index++;
 			}
 
-			quick_cmd_count = cmd_index + 1;
+			quick_cmd_count = cmd_index < QCMD_MAX ? cmd_index + 1 : QCMD_MAX;
 			fclose(fp);
 		}
+	}
+}
+
+/*
+* Refresh the QCMD to `QuickCommand` submenu.
+*/
+static void update_qcmd_menu(void)
+{
+	int i;
+	while (DeleteMenu(qcmd_menu, 0, MF_BYPOSITION));
+
+	if (quick_cmd_count == 0)
+	{
+		AppendMenu(qcmd_menu, MF_GRAYED, IDM_SAVED_MIN, "(No QuickCommand)");
+		return;
+	}
+
+	for (i = 0; i < quick_cmd_count; i++)
+	{
+		char qcmd_item[512] = {0};
+		sprintf(qcmd_item, "[%s]       Shift+F%d", quick_cmd[i].name, i);
+		AppendMenu(qcmd_menu, MF_ENABLED, IDM_QCMD_MIN + i, qcmd_item);
 	}
 }
 
@@ -885,10 +910,15 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 	get_sesslist(&sesslist, TRUE);
 	update_savedsess_menu();
 
+	qcmd_menu = CreateMenu();
+	read_quick_cmd_from_config();
+	update_qcmd_menu();
+
 	for (j = 0; j < lenof(popup_menus); j++) {
 	    m = popup_menus[j].menu;
 
 	    AppendMenu(m, MF_SEPARATOR, 0, 0);
+		AppendMenu(m, MF_POPUP | MF_ENABLED, (UINT_PTR)qcmd_menu, "QuickCommand");
 	    AppendMenu(m, MF_ENABLED, IDM_SHOWLOG, "&Event Log");
 	    AppendMenu(m, MF_SEPARATOR, 0, 0);
 	    AppendMenu(m, MF_ENABLED, IDM_NEWSESS, "Ne&w Session...");
