@@ -53,11 +53,13 @@
 #define IDM_FULLSCREEN	0x0180
 #define IDM_PASTE     0x0190
 #define IDM_SPECIALSEP 0x0200
+#define IDM_EXECUTEQCMD 0x0210
 
 #define IDM_SPECIAL_MIN 0x0400
 #define IDM_SPECIAL_MAX 0x0800
 
 #define IDM_QCMD_MIN 0x900
+#define IDM_QCMD_MAX 0x910
 
 #define IDM_SAVED_MIN 0x1000
 #define IDM_SAVED_MAX 0x5000
@@ -246,7 +248,9 @@ typedef struct
 }QCMD;
 
 QCMD quick_cmd[QCMD_MAX];
-static quick_cmd_count = 0;
+static UINT quick_cmd_count = 0;
+static UINT current_qcmd_index = 0;
+
 void read_quick_cmd_from_config(void)
 {
 	static unsigned char read_flag = 0;
@@ -322,6 +326,35 @@ static void update_qcmd_menu(void)
 	}
 }
 
+DWORD WINAPI execute_quick_cmd_thread(LPVOID _pts)
+{
+	HWND hwnd = (HWND)_pts;
+	int cmd_length = strlen(quick_cmd[current_qcmd_index].cmd);
+	int press_enter = quick_cmd[current_qcmd_index].enter == 'Y' ? 1 : 0;
+
+	int i = 0;
+	while (i < cmd_length)
+	{
+		SendMessage(hwnd, WM_CHAR, quick_cmd[current_qcmd_index].cmd[i], 0);
+		//Sleep(2);  // It seems sleep is not necessary , test it in work environment. Rollback it if need.
+		i++;
+	}
+
+	if (press_enter)
+	{
+		SendMessage(hwnd, WM_CHAR, '\r', 0);
+	}
+}
+
+void execute_quick_cmd(HWND hwnd, UINT index)
+{
+	if (index < quick_cmd_count)
+	{
+		current_qcmd_index = index;
+		DWORD thread_id;
+		CreateThread(NULL, 0, execute_quick_cmd_thread, hwnd, 0, &thread_id);
+	}
+}
 /* Dummy routine, only required in plink. */
 void frontend_echoedit_update(void *frontend, int echo, int edit)
 {
@@ -2563,10 +2596,16 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 	  case IDM_FULLSCREEN:
 	    flip_full_screen();
 	    break;
+	  case IDM_EXECUTEQCMD:
+		  execute_quick_cmd(hwnd, lParam - IDM_QCMD_MIN);
+		break;
 	  default:
 	    if (wParam >= IDM_SAVED_MIN && wParam < IDM_SAVED_MAX) {
 		SendMessage(hwnd, WM_SYSCOMMAND, IDM_SAVEDSESS, wParam);
 	    }
+		if (wParam >= IDM_QCMD_MIN && wParam < IDM_QCMD_MAX) {
+		SendMessage(hwnd, WM_SYSCOMMAND, IDM_EXECUTEQCMD, wParam);
+		}
 	    if (wParam >= IDM_SPECIAL_MIN && wParam <= IDM_SPECIAL_MAX) {
 		int i = (wParam - IDM_SPECIAL_MIN) / 0x10;
 		/*
