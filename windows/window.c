@@ -329,7 +329,7 @@ static void update_qcmd_menu(void)
 	for (i = 0; i < quick_cmd_count; i++)
 	{
 		char qcmd_item[512] = {0};
-		sprintf(qcmd_item, "[%s]       Shift+F%d", quick_cmd[i].name, i);
+		sprintf(qcmd_item, "Ctrl+F%d  [%s]", i, quick_cmd[i].name);
 		AppendMenu(qcmd_menu, MF_ENABLED, IDM_QCMD_MIN + i, qcmd_item);
 	}
 }
