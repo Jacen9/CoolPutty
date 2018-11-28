@@ -150,7 +150,7 @@ static struct {
 enum { SYSMENU, CTXMENU };
 static HMENU savedsess_menu;
 static HMENU qcmd_menu;
-
+static HMENU connect_status_button;
 struct wm_netevent_params {
     /* Used to pass data to wm_netevent_callback */
     WPARAM wParam;
@@ -955,11 +955,14 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 	read_quick_cmd_from_config();
 	update_qcmd_menu();
 
+	connect_status_button = CreateMenu();
+
 	for (j = 0; j < lenof(popup_menus); j++) {
 	    m = popup_menus[j].menu;
 
 	    AppendMenu(m, MF_SEPARATOR, 0, 0);
 		AppendMenu(m, MF_POPUP | MF_ENABLED, (UINT_PTR)qcmd_menu, "QuickCommand");
+		AppendMenu(m,MF_ENABLED,(UINT_PTR)connect_status_button,"Disconnect");
 	    AppendMenu(m, MF_ENABLED, IDM_SHOWLOG, "&Event Log");
 	    AppendMenu(m, MF_SEPARATOR, 0, 0);
 	    AppendMenu(m, MF_ENABLED, IDM_NEWSESS, "Ne&w Session...");
